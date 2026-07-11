@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+output/
+client_secret_*.json
+client_secrets.json
+token.json
+fugu_data.db
+assets/
+*.zip
