@@ -46,14 +46,23 @@ def assemble_video(scenes: list, output_path: str = "output/final_video.mp4") ->
             # 3. Add Animated Subtitles
             text = scene.get("voice", "")
             if text:
-                wrapped_text = textwrap.fill(text, width=30)
                 try:
-                    txt_clip = TextClip(wrapped_text, fontsize=55, color='white',
-                                       bg_color='black', method='caption', size=(900, None))
+                    # method='caption' and size=(900, None) automatically wraps text.
+                    # We use stroke_color and stroke_width for cinematic text instead of an ugly black box.
+                    txt_clip = TextClip(
+                        text, 
+                        fontsize=60, 
+                        color='white',
+                        font='Arial-Bold',
+                        stroke_color='black',
+                        stroke_width=2.5,
+                        method='caption', 
+                        size=(900, None)
+                    )
                     # Floating animation: moves slightly upward
                     def make_float(dur):
                         def float_up(t):
-                            y = int(1300 - 100 * (t / max(dur, 0.01)))
+                            y = int(1400 - 80 * (t / max(dur, 0.01)))
                             return ('center', y)
                         return float_up
                     txt_clip = txt_clip.set_position(make_float(duration)).set_duration(duration)
