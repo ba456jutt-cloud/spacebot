@@ -6,6 +6,9 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def _download_image(scene, output_dir):
+    # Add a random delay (jitter) so all threads don't hit the server at the exact same millisecond
+    time.sleep(random.uniform(0.5, 3.0))
+    
     prompt = scene["prompt"]
     scene_id = scene["scene_id"]
 
@@ -27,8 +30,8 @@ def _download_image(scene, output_dir):
                 success = True
                 break
             elif response.status_code == 429:
-                print(f"  [!] Rate limited on Scene {scene_id}. Retrying in 10s...")
-                time.sleep(10)
+                print(f"  [!] Rate limited on Scene {scene_id}. Retrying in {10 * (attempt + 1)}s...")
+                time.sleep(10 * (attempt + 1))  # Exponential backoff
             else:
                 print(f"  [-] Failed Scene {scene_id} - HTTP {response.status_code}")
                 break
@@ -50,8 +53,8 @@ def generate_scene_images(scenes: list, output_dir: str = "assets") -> list:
     print(f"[*] Image Agent: Generating {len(scenes)} images via Pollinations.ai (Multithreaded)...")
 
     updated_scenes = []
-    # Use max_workers=10 to download 10 images at once
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    # Use max_workers=3 instead of 10 to avoid getting banned/rate limited by the free API
+    with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(_download_image, scene, output_dir): scene for scene in scenes}
         for future in as_completed(futures):
             updated_scenes.append(future.result())
