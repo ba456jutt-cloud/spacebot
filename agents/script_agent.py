@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TARGET_SCENES = 120  # Exactly 120 scenes = 10 minutes (120 x 5s = 600s)
+TARGET_SCENES = 5  # Exactly 5 scenes for testing
 
 def generate_script(trend_data: dict) -> list:
     """
