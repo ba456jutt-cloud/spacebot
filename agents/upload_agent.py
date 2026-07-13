@@ -72,25 +72,30 @@ def generate_seo_metadata(topic: str) -> dict:
     
     payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.7}}
     
-    try:
-        response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-        response.raise_for_status()
-        result_text = response.json()['candidates'][0]['content']['parts'][0]['text']
-        
-        # Clean markdown codeblocks if Gemini added them
-        result_text = result_text.replace("```json", "").replace("```", "").strip()
-        metadata = json.loads(result_text)
-        print("[+] SEO Metadata generated successfully.")
-        return metadata
-    except Exception as e:
-        print(f"[-] SEO Generation failed: {e}. Using fallback.")
-        return _fallback_seo(topic)
+    for attempt in range(3):
+        try:
+            response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
+            response.raise_for_status()
+            result_text = response.json()['candidates'][0]['content']['parts'][0]['text']
+            
+            # Clean markdown codeblocks if Gemini added them
+            result_text = result_text.replace("```json", "").replace("```", "").strip()
+            metadata = json.loads(result_text)
+            print("[+] SEO Metadata generated successfully.")
+            return metadata
+        except Exception as e:
+            print(f"  [-] SEO Generation attempt {attempt+1} failed: {e}. Retrying...")
+            import time
+            time.sleep(5)
+            
+    print("[-] SEO Generation completely failed. Using fallback.")
+    return _fallback_seo(topic)
 
 def _fallback_seo(topic: str):
     return {
         "title": f"The Terrifying Truth About {topic}",
-        "description": f"Explore the darkest corners of the universe in this cinematic documentary about {topic}. \n\n#Space #Documentary #Universe",
-        "tags": ["space", "universe", "documentary", "astronomy", "sci-fi"]
+        "description": f"Explore the darkest corners of the universe in this cinematic documentary about {topic}. Join us on a mind-bending journey through space and time.\n\n#Space #Documentary #Universe #Science #Astronomy #Astrophysics #Cosmos #Galaxy #NASA #SpaceX #BlackHole #Aliens #SpaceExploration #SciFi #Physics #Education #Trending #Viral #SpaceFacts #Mystery",
+        "tags": ["space", "universe", "documentary", "astronomy", "science", "astrophysics", "cosmos", "galaxy", "nasa", "spacex", "black hole", "aliens", "extraterrestrial", "space exploration", "sci-fi", "physics", "education", "trending", "viral", "space facts", "mystery"]
     }
 
 def upload_to_youtube(video_path: str, thumbnail_path: str, seo_data: dict) -> str:
