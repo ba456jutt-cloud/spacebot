@@ -8,12 +8,14 @@ load_dotenv()
 
 TARGET_SCENES = 5  # Exactly 5 scenes for testing
 
+CHUNK_SIZE = min(TARGET_SCENES, 30)
+
 def generate_script(trend_data: dict) -> list:
     """
-    Calls the Gemini API to write a 120-scene documentary script.
+    Calls the Gemini API to write a documentary script in chunks.
     Returns a list of dicts: [{'scene_id': 1, 'prompt': '...', 'voice': '...'}, ...]
     """
-    print(f"[*] Script Agent: Generating {TARGET_SCENES}-scene script for '{trend_data['title']}'...")
+    print(f"[*] Script Agent: Generating {TARGET_SCENES}-scene script for '{trend_data['title']}' in chunks of {CHUNK_SIZE}...")
     
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key or api_key == "your_gemini_api_key_here":
@@ -25,20 +27,20 @@ def generate_script(trend_data: dict) -> list:
     tags_str = ", ".join(trend_data.get("tags", []))
     
     prompt_text = f"""You are an expert documentary scriptwriter and AI image prompt engineer.
-Create a cinematic 10-minute documentary script about the following topic.
+Create a cinematic documentary script about the following topic.
 
 Topic: "{trend_data['title']}"
 Description: "{trend_data['description']}"
 Keywords: {tags_str}
 
 STRICT REQUIREMENTS:
-1. You MUST output EXACTLY {TARGET_SCENES} scenes. No more. No less.
+1. You MUST output EXACTLY {CHUNK_SIZE} scenes for this part.
 2. Each scene represents 5 seconds of video.
 3. The VOICE text for each scene MUST be between 10 and 20 words ONLY. Short sentences. Punchy. Dramatic.
 4. The PROMPT must be a vivid, hyper-detailed image generation prompt mentioning: cinematic, 8k, photorealistic, dramatic lighting.
 5. Do NOT add any introduction, conclusion, or extra commentary. Output ONLY the scenes below.
 
-OUTPUT FORMAT (repeat exactly {TARGET_SCENES} times):
+OUTPUT FORMAT (repeat exactly {CHUNK_SIZE} times):
 [SCENE 1]
 PROMPT: <detailed image generation prompt here>
 VOICE: <10 to 20 words of dramatic narration here>
@@ -47,8 +49,8 @@ VOICE: <10 to 20 words of dramatic narration here>
 PROMPT: <detailed image generation prompt here>
 VOICE: <10 to 20 words of dramatic narration here>
 
-... continue for all {TARGET_SCENES} scenes ...
-[SCENE {TARGET_SCENES}]
+... continue for all {CHUNK_SIZE} scenes ...
+[SCENE {CHUNK_SIZE}]
 PROMPT: <detailed image generation prompt here>
 VOICE: <10 to 20 words of dramatic narration here>
 """
@@ -57,23 +59,24 @@ VOICE: <10 to 20 words of dramatic narration here>
         "contents": [{"parts": [{"text": prompt_text}]}],
         "generationConfig": {
             "temperature": 0.8,
-            "maxOutputTokens": 65536  # Must be high for 120 scenes
+            "maxOutputTokens": 65536
         }
     }
     
     try:
-        print(f"[*] Calling Gemini API (this may take 30-60 seconds for {TARGET_SCENES} scenes)...")
+        print(f"[*] Calling Gemini API (Chunk 1: {CHUNK_SIZE} scenes)...")
         response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, timeout=120)
         response.raise_for_status()
         result_text = response.json()['candidates'][0]['content']['parts'][0]['text']
         scenes = parse_script_output(result_text)
         
-        # If Gemini returned fewer than expected, try to extend
-        if len(scenes) < TARGET_SCENES:
-            print(f"[!] Got {len(scenes)} scenes, need {TARGET_SCENES}. Requesting more...")
+        # Loop until we reach TARGET_SCENES
+        while len(scenes) < TARGET_SCENES:
+            print(f"[!] Got {len(scenes)} scenes, need {TARGET_SCENES}. Requesting next chunk...")
             scenes = _extend_scenes(scenes, trend_data, api_key, url)
         
-        return scenes
+        # Truncate if Gemini hallucinated more scenes than asked
+        return scenes[:TARGET_SCENES]
     except Exception as e:
         print(f"[-] Script Agent Error: {e}")
         return _get_fallback_script()
@@ -81,8 +84,9 @@ VOICE: <10 to 20 words of dramatic narration here>
 def _extend_scenes(existing_scenes: list, trend_data: dict, api_key: str, url: str) -> list:
     """Request additional scenes to reach TARGET_SCENES count."""
     current_count = len(existing_scenes)
-    needed = TARGET_SCENES - current_count
+    needed = min(TARGET_SCENES - current_count, 30) # Ask for max 30 at a time
     start_id = current_count + 1
+    end_id = current_count + needed
     
     extend_prompt = f"""Continue the documentary about "{trend_data['title']}".
 Write {needed} MORE scenes continuing from scene {start_id}.
@@ -93,7 +97,7 @@ Use EXACTLY this format:
 PROMPT: ...
 VOICE: ...
 
-Continue until [SCENE {TARGET_SCENES}]"""
+Continue until [SCENE {end_id}]"""
 
     payload = {
         "contents": [{"parts": [{"text": extend_prompt}]}],
@@ -104,14 +108,16 @@ Continue until [SCENE {TARGET_SCENES}]"""
         response.raise_for_status()
         extra_text = response.json()['candidates'][0]['content']['parts'][0]['text']
         extra_scenes = parse_script_output(extra_text)
+        
         # Re-number scenes sequentially
         for i, s in enumerate(extra_scenes):
             s["scene_id"] = current_count + i + 1
+            
         combined = existing_scenes + extra_scenes
         print(f"[+] Extended to {len(combined)} scenes total.")
         return combined
     except Exception as e:
-        print(f"[-] Extension failed: {e}. Returning {current_count} scenes.")
+        print(f"[-] Extension failed: {e}. Returning {current_count} scenes. Will retry.")
         return existing_scenes
 
 def parse_script_output(text: str) -> list:

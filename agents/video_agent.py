@@ -103,8 +103,9 @@ def assemble_video(scenes: list, output_path: str = "output/final_video.mp4") ->
             fps=24,
             codec="libx264",
             audio_codec="aac",
-            preset="fast",
-            threads=4
+            preset="ultrafast",
+            threads=4,
+            logger=None
         )
         print(f"[+] Video Agent: Final documentary saved to {output_path}")
         return True
