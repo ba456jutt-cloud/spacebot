@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TARGET_SCENES = 5  # Exactly 5 scenes for testing
+TARGET_SCENES = 120  # Exactly 120 scenes for a 10-minute video
 
 CHUNK_SIZE = min(TARGET_SCENES, 30)
 

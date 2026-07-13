@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def _download_image(scene, output_dir):
     # Add a random delay (jitter) so all threads don't hit the server at the exact same millisecond
-    time.sleep(random.uniform(0.5, 3.0))
+    time.sleep(random.uniform(1.0, 4.0))
     
     prompt = scene["prompt"]
     scene_id = scene["scene_id"]
@@ -19,7 +19,7 @@ def _download_image(scene, output_dir):
     image_path = os.path.join(output_dir, f"scene_{scene_id:03d}.jpg")
 
     success = False
-    for attempt in range(3):
+    for attempt in range(10): # Increased to 10 attempts to NEVER skip a scene
         try:
             response = requests.get(url, timeout=30)
             if response.status_code == 200:
@@ -30,19 +30,20 @@ def _download_image(scene, output_dir):
                 success = True
                 break
             elif response.status_code == 429:
-                print(f"  [!] Rate limited on Scene {scene_id}. Retrying in {10 * (attempt + 1)}s...")
-                time.sleep(10 * (attempt + 1))  # Exponential backoff
+                sleep_time = 15 * (attempt + 1)
+                print(f"  [!] Rate limited on Scene {scene_id}. Retrying in {sleep_time}s...")
+                time.sleep(sleep_time)  # Exponential backoff
             else:
                 print(f"  [-] Failed Scene {scene_id} - HTTP {response.status_code}")
-                break
+                time.sleep(10)
         except Exception as e:
             print(f"  [-] Exception Scene {scene_id} (Attempt {attempt+1}): {e}")
-            time.sleep(5)
+            time.sleep(10)
 
     if not success:
         scene["image_path"] = None
 
-    time.sleep(1) # Small delay to not overwhelm the API too much
+    time.sleep(2) # Small delay to not overwhelm the API too much
     return scene
 
 def generate_scene_images(scenes: list, output_dir: str = "assets") -> list:
