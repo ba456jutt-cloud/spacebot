@@ -40,38 +40,40 @@ def assemble_video(scenes: list, output_path: str = "output/final_video.mp4") ->
                 else:
                     video_clip = video_clip.subclip(0, duration)
             else:
-                # Fallback to static image
-                video_clip = ImageClip(img_path).set_duration(duration)
+                # Fallback to static image and add a slow zoom-in effect (Ken Burns)
+                def zoom(t):
+                    return 1 + 0.04 * (t / max(duration, 0.01))
+                video_clip = ImageClip(img_path).set_duration(duration).resize(zoom)
             
             # 3. Add Animated Subtitles
             text = scene.get("voice", "")
             if text:
                 try:
-                    # method='caption' and size=(900, None) automatically wraps text.
+                    # method='caption' and size=(1600, None) automatically wraps text.
                     # We use stroke_color and stroke_width for cinematic text instead of an ugly black box.
                     txt_clip = TextClip(
                         text, 
                         fontsize=60, 
                         color='white',
-                        font='Arial-Bold',
                         stroke_color='black',
                         stroke_width=2.5,
                         method='caption', 
-                        size=(900, None)
+                        size=(1600, None)
                     )
-                    # Floating animation: moves slightly upward
+                    # Floating animation: moves slightly upward in 1080p landscape
                     def make_float(dur):
                         def float_up(t):
-                            y = int(1400 - 80 * (t / max(dur, 0.01)))
+                            y = int(850 - 40 * (t / max(dur, 0.01)))
                             return ('center', y)
                         return float_up
                     txt_clip = txt_clip.set_position(make_float(duration)).set_duration(duration)
-                    comp = CompositeVideoClip([video_clip.set_position('center'), txt_clip], size=(1080, 1920))
+                    comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
+                    comp = CompositeVideoClip([comp, txt_clip], size=(1920, 1080))
                 except Exception as txt_err:
                     print(f"  [-] TextClip skipped: {txt_err}")
-                    comp = CompositeVideoClip([video_clip.set_position('center')], size=(1080, 1920))
+                    comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
             else:
-                comp = CompositeVideoClip([video_clip.set_position('center')], size=(1080, 1920))
+                comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
                 
             comp = comp.set_duration(duration).set_audio(audio_clip)
             video_clips.append(comp)

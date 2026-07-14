@@ -14,7 +14,7 @@ def _download_image(scene, output_dir):
 
     encoded_prompt = urllib.parse.quote(prompt)
     dynamic_seed = random.randint(100000, 999999)
-    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&nologo=true&seed={dynamic_seed}"
+    url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&nologo=true&seed={dynamic_seed}"
 
     image_path = os.path.join(output_dir, f"scene_{scene_id:03d}.jpg")
 
