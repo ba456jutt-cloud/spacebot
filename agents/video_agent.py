@@ -53,14 +53,21 @@ def assemble_video(scenes: list, output_path: str = "output/final_video.mp4") ->
             text = scene.get("voice", "")
             if text:
                 try:
-                    # method='caption' and size=(1600, None) automatically wraps text.
-                    # We use stroke_color and stroke_width for cinematic text instead of an ugly black box.
+                    import requests
+                    font_path = "assets/Anton-Regular.ttf"
+                    if not os.path.exists(font_path):
+                        os.makedirs("assets", exist_ok=True)
+                        r = requests.get("https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf")
+                        with open(font_path, "wb") as f:
+                            f.write(r.content)
+                    
                     txt_clip = TextClip(
                         text, 
-                        fontsize=60, 
-                        color='white',
+                        font=os.path.abspath(font_path),
+                        fontsize=70, 
+                        color='yellow',
                         stroke_color='black',
-                        stroke_width=2.5,
+                        stroke_width=3,
                         method='caption', 
                         size=(1600, None)
                     )
