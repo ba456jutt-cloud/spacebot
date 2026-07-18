@@ -23,7 +23,7 @@ jobs:
           sudo apt-get install -y imagemagick ffmpeg
           # Fix ImageMagick security policy for MoviePy text rendering
           sudo sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/g' /etc/ImageMagick-6/policy.xml
-          sudo sed -i 's/rights="none" pattern="EPS"/rights="read|write" pattern="EPS"/g' /etc/ImageMagick-6/policy.xml
+          sudo sed -i '/pattern="@\*/d' /etc/ImageMagick-6/policy.xml
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
