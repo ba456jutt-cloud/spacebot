@@ -36,7 +36,8 @@ Keywords: {tags_str}
 STRICT REQUIREMENTS:
 1. You MUST output EXACTLY {CHUNK_SIZE} scenes for this part.
 2. Each scene represents 5 seconds of video.
-3. The VOICE text for each scene MUST be between 10 and 20 words ONLY. Short sentences. Punchy. Dramatic.
+3. THE 5-SECOND HOOK RULE: [SCENE 1] MUST be an extreme hook. Start with a shocking statement like 'You've been lied to' or 'Scientists are terrified'.
+4. The VOICE text for each scene MUST be between 10 and 20 words ONLY. Short sentences. Punchy. Dramatic.
 4. The PROMPT must be a vivid, hyper-detailed image generation prompt mentioning: cinematic, 8k, photorealistic, dramatic lighting.
 5. Do NOT add any introduction, conclusion, or extra commentary. Output ONLY the scenes below.
 

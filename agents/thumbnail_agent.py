@@ -30,7 +30,7 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
     print(f"[*] Thumbnail Agent: Generating viral thumbnail for '{seo_title}'...")
     
     api_key = os.getenv("GEMINI_API_KEY")
-    prompt_text = "A hyper-realistic cinematic deep space anomaly, MrBeast style, bright glowing neon colors, extreme contrast, highly detailed, 8k"
+    prompt_text = "A hyper-realistic cinematic deep space anomaly, massive glowing red arrow pointing at something, extreme contrast, huge glowing red circle, MrBeast style, bright glowing neon colors, extreme contrast, highly detailed, 8k"
     overlay_text = "SHOCKING!"
     
     if api_key and api_key != "your_gemini_api_key_here":
@@ -78,7 +78,7 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
         img = Image.open(output_path).convert("RGBA")
         draw = ImageDraw.Draw(img)
         
-        font = get_bold_font(130)
+        font = get_bold_font(180)
             
         width, height = img.size
         wrapped_text = textwrap.fill(overlay_text, width=12)

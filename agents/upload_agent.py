@@ -58,7 +58,7 @@ def generate_seo_metadata(topic: str) -> dict:
     Generate the metadata for this video in JSON format.
     
     Requirements:
-    1. "title": A highly clickable, dramatic, and SEO-optimized YouTube title (under 95 characters). Make it viral-worthy.
+    1. "title": A hyper-viral, dramatic, and extremely clickbaity YouTube title (under 95 characters). Use extreme curiosity gaps. Example: "Scientists PANIC: The Terrifying Truth About Aliens!" DO NOT use generic or academic titles.
     2. "description": A captivating, highly detailed, and LONG description (at least 300 words). Write it in VERY SIMPLE, user-friendly language so anyone can understand it easily. Explain the topic like you are telling a fascinating story to a friend. CRITICAL: You MUST include a minimum of 20 hashtags at the bottom. These hashtags MUST include #trends, #viral, and #documentary alongside highly searched space-related hashtags.
     3. "tags": A list of exactly 20 highly searched YouTube tags/keywords related to the topic.
     
