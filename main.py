@@ -9,7 +9,8 @@ from agents.image_agent import generate_scene_images
 from agents.animation_agent import generate_3d_animations
 from agents.music_agent import generate_music
 from agents.voice_agent import generate_scene_voiceovers
-from agents.video_agent import assemble_video\nfrom agents.shorts_agent import generate_youtube_short
+from agents.video_agent import assemble_video
+from agents.shorts_agent import generate_youtube_short
 from agents.upload_agent import generate_seo_metadata, upload_to_youtube
 from agents.thumbnail_agent import generate_custom_thumbnail
 
