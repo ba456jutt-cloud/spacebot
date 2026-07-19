@@ -55,6 +55,12 @@ def generate_3d_animations(scenes: list) -> list:
                 out.write(frame)
 
             out.release()
+            
+            # Explicitly clear memory to prevent GitHub Actions OOM (Exit code 143)
+            del img, frame, cropped, out
+            import gc
+            gc.collect()
+            
             print(f"  [+] Scene {scene['scene_id']} animation done.")
         except Exception as e:
             print(f"  [-] Animation Error on Scene {scene['scene_id']}: {e}")
