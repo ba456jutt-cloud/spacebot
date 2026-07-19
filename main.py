@@ -9,7 +9,7 @@ from agents.image_agent import generate_scene_images
 from agents.animation_agent import generate_3d_animations
 from agents.music_agent import generate_music
 from agents.voice_agent import generate_scene_voiceovers
-from agents.video_agent import assemble_video
+from agents.video_agent import assemble_video\nfrom agents.shorts_agent import generate_youtube_short
 from agents.upload_agent import generate_seo_metadata, upload_to_youtube
 from agents.thumbnail_agent import generate_custom_thumbnail
 
@@ -68,9 +68,21 @@ def main():
         if not thumbnail_path:
             thumbnail_path = scenes[0].get("image_path") # Fallback to first scene
             
+        # 5.75 YouTube Shorts Generation
+        print("\n[PHASE 5.75] Generating YouTube Short (9:16)")
+        short_output_file = output_file.replace(".mp4", "_short.mp4")
+        generate_youtube_short(scenes, short_output_file)
+
         # 6. YouTube Auto Upload
         print("\n[PHASE 6] YouTube Automated Upload")
         upload_video_id = upload_to_youtube(output_file, thumbnail_path, seo_data)
+        
+        if os.path.exists(short_output_file):
+            print("[*] Uploading YouTube Short...")
+            short_seo = seo_data.copy()
+            short_seo["title"] = short_seo["title"][:85] + " #Shorts"
+            upload_to_youtube(short_output_file, None, short_seo) # No custom thumbnail for shorts
+
         
         print("\n" + "="*60)
         if upload_video_id:
