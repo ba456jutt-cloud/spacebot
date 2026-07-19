@@ -21,7 +21,7 @@ async def _download_voice(scene, output_dir, semaphore):
         audio_path = os.path.join(output_dir, f"scene_{scene_id:03d}.mp3")
 
         try:
-            communicate = edge_tts.Communicate(voice_text, voice)
+            communicate = edge_tts.Communicate(voice_text, voice, rate='-10%')
             await communicate.save(audio_path)
             print(f"  [+] Voice Scene {scene_id} generated.")
             scene["audio_path"] = audio_path

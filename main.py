@@ -45,7 +45,7 @@ def main():
 
     # 3.5 3D Animation (DepthFlow)
     print("\n[PHASE 3.5] 3D Animation (DepthFlow)")
-    scenes = generate_3d_animations(scenes)
+    # scenes = generate_3d_animations(scenes)  # Disabled to fix OOM; Zoom is now handled by video_agent via FFmpeg
 
     # 3.75 Music Generation
     print("\n[PHASE 3.75] AI Music Generation (MusicGen)")

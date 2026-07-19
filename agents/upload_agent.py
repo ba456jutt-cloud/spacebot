@@ -81,6 +81,11 @@ def generate_seo_metadata(topic: str) -> dict:
             # Clean markdown codeblocks if Gemini added them
             result_text = result_text.replace("```json", "").replace("```", "").strip()
             metadata = json.loads(result_text)
+            
+            # CRITICAL: YouTube limits titles to 100 characters. Force limit to 95.
+            if len(metadata.get("title", "")) > 95:
+                metadata["title"] = metadata["title"][:92] + "..."
+                
             print("[+] SEO Metadata generated successfully.")
             return metadata
         except Exception as e:

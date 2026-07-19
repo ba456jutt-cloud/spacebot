@@ -1,139 +1,150 @@
-import os
-from PIL import Image
-if not hasattr(Image, 'ANTIALIAS'):
-    Image.ANTIALIAS = Image.Resampling.LANCZOS
 
-from moviepy.editor import (
-    ImageClip, AudioFileClip, concatenate_videoclips,
-    CompositeVideoClip, CompositeAudioClip, TextClip,
-    VideoFileClip
-)
-import textwrap
+import os
+import subprocess
+import glob
+
+def get_audio_duration(audio_path: str) -> float:
+    cmd = [
+        "ffprobe", "-v", "error", "-show_entries",
+        "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+        audio_path
+    ]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return float(result.stdout.strip())
+    except:
+        return 5.0
+
+def float_to_ass_time(seconds: float) -> str:
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds - int(seconds)) * 100)
+    return f"{hours}:{minutes:02d}:{secs:02d}.{millis:02d}"
+
+def generate_scene_ass(scene_id: str, text: str, duration: float) -> str:
+    ass_path = f"assets/scene_{scene_id}.ass"
+    start_time = float_to_ass_time(0)
+    end_time = float_to_ass_time(duration)
+    
+    ass_content = f'''[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Anton,80,&H0000FFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,4,0,2,10,10,60,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,{start_time},{end_time},Default,,0,0,0,,{text}
+'''
+    with open(ass_path, "w", encoding="utf-8") as f:
+        f.write(ass_content)
+    return ass_path
 
 def assemble_video(scenes: list, output_path: str = "output/final_video.mp4") -> bool:
-    """
-    Takes a list of scenes with image and audio paths.
-    Stitches them together using MoviePy 1.0.3.
-    """
-    print(f"[*] Video Agent: Assembling {len(scenes)} scenes into final documentary...")
+    print(f"[*] Video Agent: Assembling {len(scenes)} scenes using FFmpeg...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs("assets/temp_scenes", exist_ok=True)
     
-    video_clips = []
+    mp4_files = []
     
-    for scene in scenes:
+    for idx, scene in enumerate(scenes):
+        scene_id = scene.get("scene_id", f"{idx:03d}")
         img_path = scene.get("image_path")
-        aud_path = scene.get("audio_path")
+        audio_path = scene.get("audio_path")
+        text = scene.get("voice", "")
         
-        if not img_path or not aud_path or not os.path.exists(img_path) or not os.path.exists(aud_path):
-            print(f"  [-] Skipping Scene {scene.get('scene_id')} - Missing files.")
+        if not img_path or not audio_path or not os.path.exists(img_path) or not os.path.exists(audio_path):
+            print(f"  [-] Skipping Scene {scene_id} - Missing files.")
             continue
             
-        try:
-            # 1. Load Audio to get duration
-            audio_clip = AudioFileClip(aud_path)
-            duration = audio_clip.duration + 0.5  # Tiny pause between scenes
-            
-            # 2. Load Image or Animation
-            anim_path = scene.get("animated_path")
-            if anim_path and anim_path.endswith(".mp4") and os.path.exists(anim_path):
-                video_clip = VideoFileClip(anim_path)
-                # Loop or trim to match audio duration
-                if video_clip.duration < duration:
-                    from moviepy.video.fx.loop import loop
-                    video_clip = loop(video_clip, duration=duration)
-                else:
-                    video_clip = video_clip.subclip(0, duration)
-            else:
-                # Fallback to static image and add a slow zoom-in effect (Ken Burns)
-                def zoom(t):
-                    return 1 + 0.04 * (t / max(duration, 0.01))
-                video_clip = ImageClip(img_path).set_duration(duration).resize(zoom)
-            
-            # 3. Add Animated Subtitles
-            text = scene.get("voice", "")
-            if text:
-                try:
-                    import requests
-                    font_path = "assets/Anton-Regular.ttf"
-                    if not os.path.exists(font_path):
-                        os.makedirs("assets", exist_ok=True)
-                        r = requests.get("https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf")
-                        with open(font_path, "wb") as f:
-                            f.write(r.content)
-                    
-                    txt_clip = TextClip(
-                        text, 
-                        font=os.path.abspath(font_path),
-                        fontsize=70, 
-                        color='yellow',
-                        stroke_color='black',
-                        stroke_width=3,
-                        method='caption', 
-                        size=(1600, None)
-                    )
-                    # Floating animation: moves slightly upward in 1080p landscape
-                    def make_float(dur):
-                        def float_up(t):
-                            y = int(850 - 40 * (t / max(dur, 0.01)))
-                            return ('center', y)
-                        return float_up
-                    txt_clip = txt_clip.set_position(make_float(duration)).set_duration(duration)
-                    comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
-                    comp = CompositeVideoClip([comp, txt_clip], size=(1920, 1080))
-                except Exception as txt_err:
-                    print(f"  [-] TextClip skipped: {txt_err}")
-                    comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
-            else:
-                comp = CompositeVideoClip([video_clip.set_position('center')], size=(1920, 1080))
-                
-            comp = comp.set_duration(duration).set_audio(audio_clip)
-            video_clips.append(comp)
-            
-        except Exception as e:
-            print(f"  [-] Error processing scene {scene.get('scene_id')}: {e}")
-            
-    if not video_clips:
-        print("[-] Video Agent: No valid clips to assemble!")
+        print(f"  [+] Processing Scene {scene_id} ({idx+1}/{len(scenes)})...")
+        
+        out_mp4 = f"assets/temp_scenes/scene_{scene_id}.mp4"
+        duration = get_audio_duration(audio_path) + 0.1
+        frames = int(duration * 24)
+        
+        ass_path = generate_scene_ass(scene_id, text, duration)
+        
+        zoom_expr = "min(zoom+0.0005,1.05)"
+        zoompan = f"zoompan=z='{zoom_expr}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames}:s=1920x1080"
+        subtitles = f"subtitles={ass_path}:fontsdir=assets"
+        
+        vf_chain = f"{zoompan},{subtitles}"
+        af_chain = "apad=pad_dur=0.1"
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-loop", "1", "-i", img_path,
+            "-i", audio_path,
+            "-vf", vf_chain,
+            "-af", af_chain,
+            "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            "-t", str(duration),
+            out_mp4
+        ]
+        
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if res.returncode == 0 and os.path.exists(out_mp4):
+            mp4_files.append(out_mp4)
+        else:
+            print(f"  [-] FFmpeg failed on Scene {scene_id}")
+
+    if not mp4_files:
+        print("[-] Video Agent: No valid scenes generated!")
         return False
         
-    print(f"[*] Video Agent: Rendering {len(video_clips)} clips (This will take a while)...")
+    print("[*] Concatenating scenes...")
+    concat_file = "assets/temp_scenes/concat.txt"
+    with open(concat_file, "w", encoding="utf-8") as f:
+        for mp4 in mp4_files:
+            f.write(f"file '{os.path.abspath(mp4)}'
+")
+            
+    temp_concat = "assets/temp_scenes/temp_concat.mp4"
+    cmd_concat = [
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+        "-i", concat_file,
+        "-c", "copy",
+        temp_concat
+    ]
+    subprocess.run(cmd_concat, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
-    try:
-        final_video = concatenate_videoclips(video_clips, method="compose")
+    if not os.path.exists(temp_concat):
+        print("[-] Concatenation failed.")
+        return False
         
-        # 4. Add Background Music (BGM)
-        bgm_path = "assets/bgm.wav"
-        if os.path.exists(bgm_path):
-            try:
-                from moviepy.audio.fx.audio_loop import audio_loop
-                from moviepy.audio.fx.volumex import volumex
-                bgm = AudioFileClip(bgm_path)
-                bgm = audio_loop(bgm, duration=final_video.duration)
-                bgm = volumex(bgm, 0.1)
-                if final_video.audio:
-                    mixed_audio = CompositeAudioClip([final_video.audio, bgm])
-                else:
-                    mixed_audio = bgm
-                final_video = final_video.set_audio(mixed_audio)
-                print("[+] Background music added at 10% volume.")
-            except Exception as bgm_err:
-                print(f"[-] BGM skipped: {bgm_err}")
+    bgm_path = "assets/bgm.wav"
+    if os.path.exists(bgm_path):
+        print("[*] Adding Background Music...")
+        cmd_bgm = [
+            "ffmpeg", "-y",
+            "-i", temp_concat,
+            "-stream_loop", "-1", "-i", bgm_path,
+            "-filter_complex", "[0:a]volume=1.0[a1];[1:a]volume=0.1[a2];[a1][a2]amix=inputs=2:duration=first[aout]",
+            "-map", "0:v", "-map", "[aout]",
+            "-c:v", "copy",
+            "-c:a", "aac", "-b:a", "192k",
+            output_path
+        ]
+        subprocess.run(cmd_bgm, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        shutil.copy(temp_concat, output_path)
+
+    # Cleanup temp
+    for f in glob.glob("assets/temp_scenes/*"):
+        os.remove(f)
+    for f in glob.glob("assets/scene_*.ass"):
+        os.remove(f)
         
-        # Write to file
-        final_video.write_videofile(
-            output_path,
-            fps=24,
-            codec="libx264",
-            audio_codec="aac",
-            preset="ultrafast",
-            threads=4,
-            logger=None
-        )
+    if os.path.exists(output_path):
         print(f"[+] Video Agent: Final documentary saved to {output_path}")
         return True
-    except Exception as e:
-        print(f"[-] Video Agent: Rendering failed: {e}")
-        return False
+    return False
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     pass
