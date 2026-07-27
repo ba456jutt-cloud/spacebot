@@ -37,11 +37,13 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         sys_prompt = f"""
         We need a VIRAL YouTube thumbnail for a video titled: "{seo_title}" (Topic: {topic}).
+        Goal: Achieve a 10% Click-Through Rate (CTR).
         Provide JSON with two keys:
         1. "image_prompt": A highly detailed prompt for an AI image generator. Create a "Split-Screen Composition" tailored EXACTLY to the video title.
-        - Left Side: A hyper-realistic close-up of a relevant subject (e.g., if the video is about the deep sea, show a shocked diver; if about space, an astronaut or scientist).
-        - Right Side: The core mystery of the video (e.g., if deep sea, a terrifying glowing sea creature; if space, a black hole or alien).
-        Make it extremely vibrant, hyper-saturated colors, cinematic lighting, and extreme contrast to maximize click-through rate. NO TEXT IN PROMPT.
+        - Left Side: A hyper-realistic close-up of a relevant subject (e.g. shocked astronaut, scientist with wide eyes).
+        - Right Side: The core mystery of the video (e.g. terrifying cosmic entity, massive anomaly).
+        - LIGHTING RULES: You MUST enforce EXTREME RED AND DEEP SPACE BLUE cinematic lighting. The contrast must be hyper-saturated. No dull colors. Make the red and blue glow violently.
+        NO TEXT IN PROMPT.
         2. "overlay_text": Extract the most shocking or compelling 2 to 3 words max directly from the title. Must be extremely punchy (e.g., "SHOCKING TRUTH", "NASA LIED?", "THEY EXIST!").
         
         Strict JSON only.

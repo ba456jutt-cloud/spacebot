@@ -69,18 +69,77 @@ def get_trending_space_topic() -> dict:
             videos[i]["viewCount"] = int(stat["statistics"].get("viewCount", 0))
             videos[i]["tags"] = stat["snippet"].get("tags", [])
 
-        # Sort by views
-        videos.sort(key=lambda x: x["viewCount"], reverse=True)
-        best_video = videos[0]
+        # Integrate Feedback Loop
+        from agents.analytics_agent import get_past_performance_feedback
+        import requests
         
-        print(f"[+] Trend Agent Selected Topic: '{best_video['title']}' (Views: {best_video['viewCount']})")
+        past_feedback = get_past_performance_feedback()
+        print(f"[*] Fetched past performance feedback:\n{past_feedback}")
         
-        return {
-            "video_id": best_video["id"],
-            "title": best_video["title"],
-            "description": best_video["description"],
-            "tags": best_video.get("tags", [])
-        }
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_api_key or gemini_api_key == "your_gemini_api_key_here":
+            best_video = videos[0]
+            print(f"[+] Trend Agent Selected Topic (No Gemini): '{best_video['title']}'")
+            return {
+                "video_id": best_video["id"],
+                "title": best_video["title"],
+                "description": best_video["description"],
+                "tags": best_video.get("tags", [])
+            }
+            
+        print("[*] Asking Gemini to generate a unique topic based on trends and past feedback...")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_api_key}"
+        
+        # Prepare context of trending videos
+        trending_context = "\\n".join([f"- {v['title']} ({v['viewCount']} views)" for v in videos[:5]])
+        
+        prompt = f"""You are a master YouTube strategist for a Space Documentary channel.
+Your goal is to generate a single, mind-blowing, hyper-viral video topic.
+
+Here is how our past videos performed:
+{past_feedback}
+
+Here are the current trending topics on YouTube right now:
+{trending_context}
+
+REQUIREMENTS:
+1. If past videos about "Aliens" or "Knocking" performed poorly, DO NOT suggest them.
+2. Formulate a COMPLETELY UNIQUE, dramatic, and terrifying topic that creates an unbearable curiosity gap.
+3. The title must be under 85 characters.
+4. Output ONLY the JSON with the title and description, nothing else.
+
+OUTPUT FORMAT (Strict JSON):
+{{
+  "title": "...",
+  "description": "..."
+}}
+"""
+        payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.9}}
+        
+        try:
+            resp = requests.post(url, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
+            resp.raise_for_status()
+            result_text = resp.json()['candidates'][0]['content']['parts'][0]['text']
+            result_text = result_text.replace("```json", "").replace("```", "").strip()
+            ai_topic = json.loads(result_text)
+            
+            print(f"[+] Trend Agent (AI) Selected Topic: '{ai_topic['title']}'")
+            return {
+                "video_id": f"ai_gen_{os.urandom(4).hex()}",
+                "title": ai_topic["title"],
+                "description": ai_topic["description"],
+                "tags": videos[0].get("tags", []) # Just borrow tags from the top trending video
+            }
+        except Exception as e:
+            print(f"[-] Gemini Topic Generation failed: {e}. Falling back to top trending.")
+            best_video = videos[0]
+            return {
+                "video_id": best_video["id"],
+                "title": best_video["title"],
+                "description": best_video["description"],
+                "tags": best_video.get("tags", [])
+            }
+            
     except Exception as e:
         print(f"[-] Trend Agent Error: {e}")
         return fallback_data
