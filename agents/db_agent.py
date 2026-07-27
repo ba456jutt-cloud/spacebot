@@ -62,3 +62,26 @@ def log_upload(upload_id: str, source_video_id: str, seo_title: str):
     )
     conn.commit()
     conn.close()
+
+def get_recent_uploads(limit: int = 3) -> list:
+    """Fetches the recent uploads from the database to inject as 'Watch Next' links."""
+    if not os.path.exists(DB_PATH):
+        return []
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Ensure table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='uploads'")
+        if not cursor.fetchone():
+            conn.close()
+            return []
+            
+        cursor.execute("SELECT upload_id, seo_title FROM uploads ORDER BY uploaded_at DESC LIMIT ?", (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [{"id": row[0], "title": row[1]} for row in rows]
+    except Exception as e:
+        print(f"[-] DB Agent Error: Failed to fetch recent uploads: {e}")
+        return []

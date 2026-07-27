@@ -65,7 +65,7 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
     # Download background image
     encoded_prompt = urllib.parse.quote(prompt_text)
     seed = random.randint(1000, 99999)
-    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&nologo=true&seed={seed}"
+    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1280&height=720&nologo=true&seed={seed}&model=flux"
     
     try:
         r = requests.get(img_url, timeout=45)
