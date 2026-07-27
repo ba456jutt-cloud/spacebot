@@ -40,11 +40,12 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
         Goal: Achieve a 10% Click-Through Rate (CTR).
         Provide JSON with two keys:
         1. "image_prompt": A highly detailed prompt for an AI image generator. Create a "Split-Screen Composition" tailored EXACTLY to the video title.
-        - Left Side: A hyper-realistic close-up of a relevant subject (e.g. shocked astronaut, scientist with wide eyes).
-        - Right Side: The core mystery of the video (e.g. terrifying cosmic entity, massive anomaly).
-        - LIGHTING RULES: You MUST enforce EXTREME RED AND DEEP SPACE BLUE cinematic lighting. The contrast must be hyper-saturated. No dull colors. Make the red and blue glow violently.
+        - STYLE: 2D vector art, comic book illustration style, clean thick outlines, bright solid cel-shaded colors.
+        - Left Side: A shocked cartoon/comic character (e.g. scientist, astronaut, or regular person) looking at the right side with wide eyes.
+        - Right Side: The core mystery or subject of the video, depicted in a clean 2D vector style.
+        - Include a massive, thick red arrow pointing from the character to the subject.
         NO TEXT IN PROMPT.
-        2. "overlay_text": Extract the most shocking or compelling 2 to 3 words max directly from the title. Must be extremely punchy (e.g., "SHOCKING TRUTH", "NASA LIED?", "THEY EXIST!").
+        2. "overlay_text": Extract the most shocking or compelling 2 to 3 words max directly from the title. Must be extremely punchy (e.g., "SHOCKING!", "NASA LIED?", "THEY EXIST!").
         
         Strict JSON only.
         """
@@ -57,7 +58,7 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
             data = json.loads(res_text)
             prompt_text = data.get("image_prompt", prompt_text)
             # Add a style enhancer suffix
-            prompt_text += ", MrBeast style thumbnail, highly saturated, glowing elements, 8k resolution, masterpiece"
+            prompt_text += ", 2D vector art, comic book illustration style, flat colors, YouTube explainer thumbnail style, trending on behance, masterpiece"
             overlay_text = data.get("overlay_text", overlay_text).upper()
         except Exception as e:
             print(f"[-] Thumbnail Agent (Gemini Error): {e}. Using fallback.")
@@ -80,7 +81,7 @@ def generate_custom_thumbnail(seo_title: str, topic: str, output_path: str = "as
         img = Image.open(output_path).convert("RGBA")
         draw = ImageDraw.Draw(img)
         
-        font = get_bold_font(180)
+        font = get_bold_font(110)
             
         width, height = img.size
         wrapped_text = textwrap.fill(overlay_text, width=12)
