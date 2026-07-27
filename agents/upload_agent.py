@@ -114,7 +114,7 @@ def _fallback_seo(topic: str):
         "tags": ["space", "universe", "documentary", "astronomy", "science", "astrophysics", "cosmos", "galaxy", "nasa", "spacex", "black hole", "aliens", "extraterrestrial", "space exploration", "sci-fi", "physics", "education", "trending", "viral", "space facts", "mystery"]
     }
 
-def upload_to_youtube(video_path: str, thumbnail_path: str, seo_data: dict) -> str:
+def upload_to_youtube(video_path: str, thumbnail_path: str, seo_data: dict, publish_at: str = None) -> str:
     """Authenticates, uploads video, sets thumbnail, and returns the YouTube Video ID."""
     if not os.path.exists(video_path):
         print(f"[-] Upload Agent Error: Video file '{video_path}' not found.")
@@ -126,8 +126,17 @@ def upload_to_youtube(video_path: str, thumbnail_path: str, seo_data: dict) -> s
         
     print(f"\n[*] Upload Agent: Starting Upload to YouTube...")
     print(f"    Title: {seo_data['title']}")
+    if publish_at:
+        print(f"    Scheduled for: {publish_at}")
     
     # 1. Upload Video
+    status_obj = {
+        "privacyStatus": "private" if publish_at else "public",
+        "selfDeclaredMadeForKids": False
+    }
+    if publish_at:
+        status_obj["publishAt"] = publish_at
+
     body = {
         "snippet": {
             "title": seo_data["title"],
@@ -135,10 +144,7 @@ def upload_to_youtube(video_path: str, thumbnail_path: str, seo_data: dict) -> s
             "tags": seo_data["tags"],
             "categoryId": "28"  # 28 is Science & Technology
         },
-        "status": {
-            "privacyStatus": "public", # We upload directly to public now
-            "selfDeclaredMadeForKids": False
-        }
+        "status": status_obj
     }
     
     media = MediaFileUpload(video_path, chunksize=-1, resumable=True, mimetype="video/mp4")

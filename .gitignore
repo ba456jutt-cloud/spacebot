@@ -9,3 +9,7 @@ token.json
 fugu_data.db
 assets/
 *.zip
+token.json
+token_edit.json
+client_secrets.json
+.env

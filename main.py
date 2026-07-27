@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 from agents.db_agent import init_db, mark_trend_processed, log_upload
@@ -10,7 +11,7 @@ from agents.animation_agent import generate_3d_animations
 from agents.music_agent import generate_music
 from agents.voice_agent import generate_scene_voiceovers
 from agents.video_agent import assemble_video
-from agents.shorts_agent import generate_youtube_short
+from agents.shorts_agent import generate_multiple_shorts
 from agents.upload_agent import generate_seo_metadata, upload_to_youtube
 from agents.thumbnail_agent import generate_custom_thumbnail
 
@@ -70,19 +71,42 @@ def main():
             thumbnail_path = scenes[0].get("image_path") # Fallback to first scene
             
         # 5.75 YouTube Shorts Generation
-        print("\n[PHASE 5.75] Generating YouTube Short (9:16)")
+        print("\n[PHASE 5.75] Generating Multiple YouTube Shorts (9:16)")
         short_output_file = output_file.replace(".mp4", "_short.mp4")
-        generate_youtube_short(scenes, short_output_file)
+        generated_shorts = generate_multiple_shorts(scenes, num_shorts=8, base_output_path=short_output_file)
 
         # 6. YouTube Auto Upload
-        print("\n[PHASE 6] YouTube Automated Upload")
+        print("\n[PHASE 6] YouTube Automated Upload (Long Video)")
         upload_video_id = upload_to_youtube(output_file, thumbnail_path, seo_data)
         
-        if os.path.exists(short_output_file):
-            print("[*] Uploading YouTube Short...")
-            short_seo = seo_data.copy()
-            short_seo["title"] = short_seo["title"][:85] + " #Shorts"
-            upload_to_youtube(short_output_file, None, short_seo) # No custom thumbnail for shorts
+        if upload_video_id and generated_shorts:
+            print("\n[*] Uploading and Scheduling YouTube Shorts...")
+            
+            # Start scheduling 3 hours from now
+            schedule_time = datetime.utcnow() + timedelta(hours=3)
+            
+            for i, short_vid in enumerate(generated_shorts):
+                print(f"[*] Processing Short {i+1}/{len(generated_shorts)}")
+                
+                short_seo = seo_data.copy()
+                # Ensure title has #Shorts and fits
+                base_title = short_seo["title"].replace("...", "").strip()
+                short_title = f"{base_title} (Part {i+1})"
+                if len(short_title) > 85:
+                    short_title = short_title[:82] + "..."
+                short_seo["title"] = short_title + " #Shorts"
+                
+                # Funnel back to long video
+                funnel_text = f"📺 Watch the FULL Video Here: https://youtu.be/{upload_video_id}\n\n"
+                short_seo["description"] = funnel_text + short_seo["description"]
+                
+                # Format time for YouTube API (ISO 8601, Zulu time)
+                publish_at_str = schedule_time.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                
+                upload_to_youtube(short_vid, None, short_seo, publish_at=publish_at_str)
+                
+                # Increment time by 3 hours for the next short
+                schedule_time += timedelta(hours=3)
 
         
         print("\n" + "="*60)

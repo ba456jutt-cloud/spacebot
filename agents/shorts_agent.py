@@ -1,28 +1,55 @@
-
 import os
 from agents.video_agent import assemble_video, get_audio_duration
 
-def generate_youtube_short(scenes: list, output_path: str = "output/short_video.mp4") -> bool:
-    print("[*] Shorts Agent: Preparing a 60-second YouTube Short...")
+def generate_multiple_shorts(scenes: list, num_shorts: int = 8, base_output_path: str = "output/short_video.mp4") -> list:
+    print(f"[*] Shorts Agent: Preparing up to {num_shorts} YouTube Shorts...")
     
-    total_dur = 0
-    short_scenes = []
+    generated_shorts = []
     
-    for s in scenes:
-        audio_path = s.get("audio_path")
-        if not audio_path or not os.path.exists(audio_path):
-            continue
+    # Try to extract sequential blocks of scenes, each under 60 seconds
+    scene_idx = 0
+    short_idx = 1
+    
+    while scene_idx < len(scenes) and short_idx <= num_shorts:
+        total_dur = 0
+        current_chunk = []
+        
+        while scene_idx < len(scenes):
+            s = scenes[scene_idx]
+            audio_path = s.get("audio_path")
+            if not audio_path or not os.path.exists(audio_path):
+                scene_idx += 1
+                continue
+                
+            dur = get_audio_duration(audio_path) + 0.1
             
-        dur = get_audio_duration(audio_path) + 0.1
-        if total_dur + dur > 59.0: # Keep under 60s
+            # If adding this scene exceeds 59 seconds, stop the chunk here
+            if total_dur + dur > 59.0:
+                # Unless the chunk is empty, in which case this single scene is >59s
+                if not current_chunk:
+                    print(f"[-] Warning: Scene {s.get('id')} is longer than 59s alone. Skipping for short.")
+                    scene_idx += 1
+                    continue
+                break
+                
+            current_chunk.append(s)
+            total_dur += dur
+            scene_idx += 1
+            
+        if not current_chunk:
             break
             
-        short_scenes.append(s)
-        total_dur += dur
+        print(f"[*] Compiling Short #{short_idx} ({len(current_chunk)} scenes, {total_dur:.2f}s)...")
         
-    if not short_scenes:
-        print("[-] Shorts Agent: No valid scenes found.")
-        return False
+        # Generate filename like short_video_1.mp4, short_video_2.mp4
+        name, ext = os.path.splitext(base_output_path)
+        chunk_path = f"{name}_{short_idx}{ext}"
         
-    print(f"[*] Compiling {len(short_scenes)} scenes for {total_dur:.2f} seconds...")
-    return assemble_video(short_scenes, output_path, is_short=True)
+        success = assemble_video(current_chunk, chunk_path, is_short=True)
+        if success and os.path.exists(chunk_path):
+            generated_shorts.append(chunk_path)
+            
+        short_idx += 1
+        
+    print(f"[+] Successfully generated {len(generated_shorts)} shorts.")
+    return generated_shorts
