@@ -1,7 +1,7 @@
 import os
 from agents.video_agent import assemble_video, get_audio_duration
 
-def generate_multiple_shorts(scenes: list, num_shorts: int = 8, base_output_path: str = "output/short_video.mp4") -> list:
+def generate_multiple_shorts(scenes: list, num_shorts: int = 6, base_output_path: str = "output/short_video.mp4") -> list:
     print(f"[*] Shorts Agent: Preparing up to {num_shorts} YouTube Shorts...")
     
     generated_shorts = []

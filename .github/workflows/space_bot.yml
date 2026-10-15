@@ -2,10 +2,8 @@ name: Fugu Space Bot Automation
 
 on:
   schedule:
-    # 5:00 AM Pakistan time (00:00 UTC)
+    # 5:00 AM Pakistan time (00:00 UTC) - Once daily (1 long video per day)
     - cron: '0 0 * * *'
-    # 8:00 PM Pakistan time (15:00 UTC)
-    - cron: '0 15 * * *'
   workflow_dispatch:
 
 jobs:

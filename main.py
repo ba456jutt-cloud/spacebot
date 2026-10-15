@@ -73,7 +73,7 @@ def main():
         # 5.75 YouTube Shorts Generation
         print("\n[PHASE 5.75] Generating Multiple YouTube Shorts (9:16)")
         short_output_file = output_file.replace(".mp4", "_short.mp4")
-        generated_shorts = generate_multiple_shorts(scenes, num_shorts=8, base_output_path=short_output_file)
+        generated_shorts = generate_multiple_shorts(scenes, num_shorts=6, base_output_path=short_output_file)
 
         # 6. YouTube Auto Upload
         print("\n[PHASE 6] YouTube Automated Upload (Long Video)")
@@ -82,8 +82,8 @@ def main():
         if upload_video_id and generated_shorts:
             print("\n[*] Uploading and Scheduling YouTube Shorts...")
             
-            # Start scheduling 3 hours from now
-            schedule_time = datetime.utcnow() + timedelta(hours=3)
+            # Start scheduling 4 hours from now
+            schedule_time = datetime.utcnow() + timedelta(hours=4)
             
             for i, short_vid in enumerate(generated_shorts):
                 print(f"[*] Processing Short {i+1}/{len(generated_shorts)}")
@@ -105,8 +105,8 @@ def main():
                 
                 upload_to_youtube(short_vid, None, short_seo, publish_at=publish_at_str)
                 
-                # Increment time by 3 hours for the next short
-                schedule_time += timedelta(hours=3)
+                # Increment time by 4 hours for the next short
+                schedule_time += timedelta(hours=4)
 
         
         print("\n" + "="*60)
